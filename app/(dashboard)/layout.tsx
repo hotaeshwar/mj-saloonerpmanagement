@@ -8,7 +8,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen w-full bg-white text-slate-800">
+    <div className="flex min-h-screen w-full bg-white text-slate-800" suppressHydrationWarning>
       {/* Sidebar navigation */}
       <Sidebar />
       
