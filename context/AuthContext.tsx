@@ -81,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Real-time Firestore Listeners for notifications
   useEffect(() => {
-    if (!db) return;
+    if (!db || !user) return;
     
     // We set a flag to wait for the initial collection snapshot to load so we don't spam alerts for past records
     let isInitialLoad = true;
@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unsubProducts();
       clearTimeout(timer);
     };
-  }, [db]);
+  }, [db, user]);
 
   useEffect(() => {
     // Load session from local storage & cookie
