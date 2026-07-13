@@ -23,13 +23,13 @@ export const Loader: React.FC<LoaderProps> = ({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm" suppressHydrationWarning>
         {spinner}
       </div>
     );
   }
 
-  return <div className="flex items-center justify-center p-4">{spinner}</div>;
+  return <div className="flex items-center justify-center p-4" suppressHydrationWarning>{spinner}</div>;
 };
 
 export const Skeleton: React.FC<{ className?: string }> = ({ className = "" }) => {
