@@ -19,6 +19,15 @@ import {
   Trash2
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { formatDate } from "../../../firebase/helpers";
+
+const getQRData = () => {
+  if (typeof window === "undefined") return "";
+  const origin = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? `https://${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "salonmanagement-83f31"}.web.app`
+    : window.location.origin;
+  return `${origin}/attendance`;
+};
 
 export default function AttendancePage() {
   const { data: employees } = useCRUD("employees");
@@ -371,7 +380,7 @@ export default function AttendancePage() {
           <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Check-in QR Code Terminal</h3>
           <div className="bg-white border border-slate-100 p-2.5 rounded-2xl mb-3 shadow-xs">
             <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(typeof window !== "undefined" ? `${window.location.origin}/attendance` : "")}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(getQRData())}`}
               className="h-32 w-32 object-contain"
               alt="QR Terminal" 
             />

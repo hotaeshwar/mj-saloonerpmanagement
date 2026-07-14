@@ -33,6 +33,10 @@ export default function AcademyPage() {
   const { data: batches, add: addBatch } = useCRUD("academy_batches");
   const { data: courses } = useCRUD("courses");
   const { data: employees } = useCRUD("employees");
+  const { data: attendanceLogs, add: addAttendance } = useCRUD("academy_attendance");
+  const { data: feeLedgers, add: addFee, update: updateFee } = useCRUD("academy_fees");
+  const { data: examScores, add: addExam } = useCRUD("academy_exams");
+  const { data: certificates, add: addCertificate } = useCRUD("academy_certificates");
 
   // Local Form state placeholders
   const [studentName, setStudentName] = useState("");
@@ -44,6 +48,24 @@ export default function AcademyPage() {
   const [batchName, setBatchName] = useState("");
   const [batchTiming, setBatchTiming] = useState("");
   const [selectedFaculty, setSelectedFaculty] = useState("");
+
+  // New Form states for other modules
+  const [attStudent, setAttStudent] = useState("");
+  const [attDate, setAttDate] = useState(new Date().toISOString().split("T")[0]);
+  const [attStatus, setAttStatus] = useState("Present");
+  const [attRemark, setAttRemark] = useState("");
+
+  const [examStudent, setExamStudent] = useState("");
+  const [examName, setExamName] = useState("");
+  const [examScore, setExamScore] = useState("");
+  const [examDate, setExamDate] = useState(new Date().toISOString().split("T")[0]);
+  const [examResult, setExamResult] = useState("Pass");
+
+  const [certStudent, setCertStudent] = useState("");
+  const [certCourse, setCertCourse] = useState("");
+  const [certDate, setCertDate] = useState(new Date().toISOString().split("T")[0]);
+  const [certFaculty, setCertFaculty] = useState("");
+  const [certStatus, setCertStatus] = useState("Issued");
 
   // Handlers
   const handleEnrollStudent = async (e: React.FormEvent) => {
@@ -62,11 +84,25 @@ export default function AcademyPage() {
         batch: selectedBatch || "Unassigned",
         status: "Active"
       });
+
+      // Auto-create fee ledger entry
+      const courseObj = courses.find(c => c.name === selectedCourse);
+      const feeAmount = courseObj?.price || 0;
+      await addFee({
+        student: studentName,
+        course: selectedCourse,
+        total: feeAmount,
+        paid: 0,
+        balance: feeAmount,
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        status: "Unpaid"
+      });
+
       setStudentName("");
       setStudentPhone("");
       setStudentEmail("");
       setModalOpen(false);
-      toast.success("Student successfully enrolled and admitted.");
+      toast.success("Student successfully enrolled and fee ledger auto-created.");
     } catch (err) {}
   };
 
@@ -92,29 +128,86 @@ export default function AcademyPage() {
     } catch (err) {}
   };
 
-  // Static/Mock details for demo tabs
-  const attendanceMockData = [
-    { id: "1", student: "Emily Blunt", course: "Masters Diploma in Cosmetology", date: new Date().toISOString().split('T')[0], status: "Present", remark: "On time" },
-    { id: "2", student: "John Krasinski", course: "Professional Bridal Makeup Artistry", date: new Date().toISOString().split('T')[0], status: "Late", remark: "15m delay" },
-  ];
+  const handleLogAttendance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!attStudent || !attDate) {
+      toast.error("Please select a student and fill in the date.");
+      return;
+    }
+    const studentObj = students.find(s => s.id === attStudent);
+    try {
+      await addAttendance({
+        student: studentObj?.name || "Unknown Student",
+        course: studentObj?.enrolledCourse || "Unassigned",
+        date: attDate,
+        status: attStatus,
+        remark: attRemark
+      });
+      setAttStudent("");
+      setAttRemark("");
+      setModalOpen(false);
+      toast.success("Attendance logged successfully.");
+    } catch (err) {}
+  };
 
-  const feesMockData = [
-    { id: "fee-101", student: "Emily Blunt", course: "Masters Diploma in Cosmetology", total: 120000, paid: 60000, balance: 60000, dueDate: "25/08/2026", status: "Partial" },
-    { id: "fee-102", student: "John Krasinski", course: "Professional Bridal Makeup Artistry", total: 60000, paid: 60000, balance: 0, dueDate: "Paid", status: "Paid" },
-  ];
+  const handleRecordExam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!examStudent || !examName || !examScore) {
+      toast.error("Please fill all required exam details.");
+      return;
+    }
+    const studentObj = students.find(s => s.id === examStudent);
+    try {
+      await addExam({
+        student: studentObj?.name || "Unknown Student",
+        exam: examName,
+        score: examScore,
+        date: examDate,
+        result: examResult
+      });
+      setExamStudent("");
+      setExamName("");
+      setExamScore("");
+      setModalOpen(false);
+      toast.success("Exam results recorded successfully.");
+    } catch (err) {}
+  };
 
-  const examsMockData = [
-    { id: "ex-1", student: "Emily Blunt", exam: "Mid-Term Styling Practical", score: "88/100", result: "Pass", date: "10/07/2026" },
-    { id: "ex-2", student: "John Krasinski", exam: "Bridal Draping Exam", score: "92/100", result: "Pass", date: "08/07/2026" },
-  ];
+  const handleAwardCertificate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!certStudent || !certCourse || !certFaculty) {
+      toast.error("Please fill in student, course, and signing faculty.");
+      return;
+    }
+    const studentObj = students.find(s => s.id === certStudent);
+    try {
+      await addCertificate({
+        student: studentObj?.name || "Unknown Student",
+        course: certCourse,
+        issuedDate: certStatus === "Issued" ? certDate : "Awaiting Finals",
+        authority: certFaculty,
+        status: certStatus
+      });
+      setCertStudent("");
+      setCertCourse("");
+      setCertFaculty("");
+      setModalOpen(false);
+      toast.success("Certificate recorded successfully.");
+    } catch (err) {}
+  };
 
-  const certificatesMockData = [
-    { id: "cert-1", student: "John Krasinski", course: "Professional Bridal Makeup Artistry", issuedDate: "12/07/2026", authority: "Sarah Connor", status: "Issued" },
-    { id: "cert-2", student: "Emily Blunt", course: "Masters Diploma in Cosmetology", issuedDate: "Awaiting Finals", authority: "Marcus Wright", status: "Pending" },
-  ];
-
-  const handlePayFees = (item: any) => {
-    toast.success(`Processing payment slip for ${item.student}. Outstanding balance reduced.`);
+  const handlePayFees = async (item: any) => {
+    try {
+      await updateFee(item.id, {
+        paid: item.total,
+        balance: 0,
+        status: "Paid",
+        dueDate: "Paid"
+      });
+      toast.success(`Fee collected successfully for ${item.student}.`);
+    } catch (err) {
+      toast.error("Failed to collect fee.");
+    }
   };
 
   const handlePrintCertificate = (item: any) => {
@@ -236,7 +329,7 @@ export default function AcademyPage() {
           </h1>
           <p className="text-xxs text-slate-400 mt-1">Manage vocational course enrollments, student records, batch planners, fee tracking and certificates.</p>
         </div>
-        <div>
+        <div className="flex gap-2">
           {activeTab === "students" && (
             <button
               onClick={() => {
@@ -257,6 +350,39 @@ export default function AcademyPage() {
               className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-xs transition-colors"
             >
               <Plus size={14} /> Configure Batch
+            </button>
+          )}
+          {activeTab === "attendance" && (
+            <button
+              onClick={() => {
+                setModalType("attendance");
+                setModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-xs transition-colors"
+            >
+              <Plus size={14} /> Log Attendance
+            </button>
+          )}
+          {activeTab === "exams" && (
+            <button
+              onClick={() => {
+                setModalType("exam");
+                setModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-xs transition-colors"
+            >
+              <Plus size={14} /> Record Exam Marks
+            </button>
+          )}
+          {activeTab === "certificates" && (
+            <button
+              onClick={() => {
+                setModalType("certificate");
+                setModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-xs transition-colors"
+            >
+              <Plus size={14} /> Award Certificate
             </button>
           )}
         </div>
@@ -327,28 +453,71 @@ export default function AcademyPage() {
         {activeTab === "attendance" && (
           <div className="space-y-4 bg-white">
             <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Student Attendance Register</h3>
-            <Table columns={attendanceCols} data={attendanceMockData} />
+            {attendanceLogs.length > 0 ? (
+              <Table columns={attendanceCols} data={attendanceLogs} searchKey="student" searchPlaceholder="Search student..." />
+            ) : (
+              <EmptyState 
+                title="No attendance logged yet"
+                description="Keep track of students' daily rosters and timing delays."
+                actionText="Log First Attendance"
+                onAction={() => {
+                  setModalType("attendance");
+                  setModalOpen(true);
+                }}
+              />
+            )}
           </div>
         )}
 
         {activeTab === "fees" && (
           <div className="space-y-4 bg-white">
             <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Academy Course Fee Accounts</h3>
-            <Table columns={feeCols} data={feesMockData} />
+            {feeLedgers.length > 0 ? (
+              <Table columns={feeCols} data={feeLedgers} searchKey="student" searchPlaceholder="Search student..." />
+            ) : (
+              <EmptyState 
+                title="No fee accounts generated"
+                description="Fee ledgers will automatically build once you enroll students into course major tracks."
+              />
+            )}
           </div>
         )}
 
         {activeTab === "exams" && (
           <div className="space-y-4 bg-white">
             <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Student Examination Scores</h3>
-            <Table columns={examCols} data={examsMockData} />
+            {examScores.length > 0 ? (
+              <Table columns={examCols} data={examScores} searchKey="student" searchPlaceholder="Search student..." />
+            ) : (
+              <EmptyState 
+                title="No exam records registered"
+                description="Add mid-term or styling practical test marks for admitted scholars."
+                actionText="Record First Exam Score"
+                onAction={() => {
+                  setModalType("exam");
+                  setModalOpen(true);
+                }}
+              />
+            )}
           </div>
         )}
 
         {activeTab === "certificates" && (
           <div className="space-y-4 bg-white">
             <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Certificate Awards Registry</h3>
-            <Table columns={certificateCols} data={certificatesMockData} />
+            {certificates.length > 0 ? (
+              <Table columns={certificateCols} data={certificates} searchKey="student" searchPlaceholder="Search student..." />
+            ) : (
+              <EmptyState 
+                title="No certifications awarded yet"
+                description="Award signed certificates for scholars who successfully clear styling courses."
+                actionText="Award First Certificate"
+                onAction={() => {
+                  setModalType("certificate");
+                  setModalOpen(true);
+                }}
+              />
+            )}
           </div>
         )}
       </div>
@@ -509,6 +678,260 @@ export default function AcademyPage() {
               className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
             >
               Schedule Batch
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Log Attendance Dialog */}
+      <Modal
+        isOpen={modalOpen && modalType === "attendance"}
+        onClose={() => setModalOpen(false)}
+        title="Log Academy Attendance"
+        size="md"
+      >
+        <form onSubmit={handleLogAttendance} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Select Student *</label>
+            <select
+              required
+              value={attStudent}
+              onChange={(e) => setAttStudent(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+            >
+              <option value="">Choose Student...</option>
+              {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.enrolledCourse})</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Date *</label>
+            <input
+              type="date"
+              required
+              value={attDate}
+              onChange={(e) => setAttDate(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Status *</label>
+            <select
+              required
+              value={attStatus}
+              onChange={(e) => setAttStatus(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+            >
+              <option value="Present">Present</option>
+              <option value="Late">Late</option>
+              <option value="Absent">Absent</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Remarks / Notes</label>
+            <input
+              type="text"
+              placeholder="e.g. 15m delay, left early, etc."
+              value={attRemark}
+              onChange={(e) => setAttRemark(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-xs font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
+            >
+              Log Attendance
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Record Exam Marks Dialog */}
+      <Modal
+        isOpen={modalOpen && modalType === "exam"}
+        onClose={() => setModalOpen(false)}
+        title="Record Examination Marks"
+        size="md"
+      >
+        <form onSubmit={handleRecordExam} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Select Student *</label>
+            <select
+              required
+              value={examStudent}
+              onChange={(e) => setExamStudent(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+            >
+              <option value="">Choose Student...</option>
+              {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Exam Subject / Name *</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Mid-Term Hair Cut Practical"
+              value={examName}
+              onChange={(e) => setExamName(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Score / Grade *</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. 85/100, A+, 92%"
+              value={examScore}
+              onChange={(e) => setExamScore(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Exam Date *</label>
+            <input
+              type="date"
+              required
+              value={examDate}
+              onChange={(e) => setExamDate(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Result *</label>
+            <select
+              required
+              value={examResult}
+              onChange={(e) => setExamResult(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+            >
+              <option value="Pass">Pass</option>
+              <option value="Fail">Fail</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-xs font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
+            >
+              Record Exam
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Award Certificate Dialog */}
+      <Modal
+        isOpen={modalOpen && modalType === "certificate"}
+        onClose={() => setModalOpen(false)}
+        title="Award Signed Certificate"
+        size="md"
+      >
+        <form onSubmit={handleAwardCertificate} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Select Student *</label>
+            <select
+              required
+              value={certStudent}
+              onChange={(e) => {
+                setCertStudent(e.target.value);
+                const s = students.find(stud => stud.id === e.target.value);
+                if (s) setCertCourse(s.enrolledCourse);
+              }}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+            >
+              <option value="">Choose Student...</option>
+              {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Course Major Track *</label>
+            <input
+              type="text"
+              required
+              readOnly
+              placeholder="Select student to auto-populate course"
+              value={certCourse}
+              className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden text-slate-500"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Award Date *</label>
+            <input
+              type="date"
+              required
+              value={certDate}
+              onChange={(e) => setCertDate(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Signing Authority (Faculty) *</label>
+            <select
+              required
+              value={certFaculty}
+              onChange={(e) => setCertFaculty(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+            >
+              <option value="">Choose Faculty...</option>
+              {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Status *</label>
+            <select
+              required
+              value={certStatus}
+              onChange={(e) => setCertStatus(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+            >
+              <option value="Issued">Issued</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-xs font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
+            >
+              Award Certificate
             </button>
           </div>
         </form>

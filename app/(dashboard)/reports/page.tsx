@@ -42,6 +42,7 @@ export default function ReportsPage() {
   const { data: appointments } = useCRUD("appointments");
   const { data: employees } = useCRUD("employees");
   const { data: students } = useCRUD("academy_students");
+  const { data: academyFeesData } = useCRUD("academy_fees");
 
   const statusCell = ({ row }: any) => {
     const item = row.original;
@@ -78,10 +79,10 @@ export default function ReportsPage() {
   const [exportYear, setExportYear] = useState<string>("2026");
 
   const handleExportExcel = () => {
-    let dataset = [];
+    let dataset: any[] = [];
     let fileName = "";
     let headers: string[] = [];
-    let extractFn = (item: any) => [];
+    let extractFn: (item: any) => any[] = (item: any) => [];
 
     const targetMonthStr = String(exportMonth).padStart(2, "0");
 
@@ -115,9 +116,9 @@ export default function ReportsPage() {
       extractFn = (item) => [item.id, item.clientName || "Walk-in", item.grandTotal || 0, (item.grandTotal * 0.09).toFixed(2), (item.grandTotal * 0.09).toFixed(2), item.date];
     } else {
       dataset = activeReport === "staff-commission" ? staffCommissionData 
-              : activeReport === "student-dues" ? studentDuesData 
-              : activeReport === "inventory" ? inventoryStockData 
-              : activeReport === "feedback" ? feedbackSurveyData : [];
+              : activeReport === "inventory" ? inventoryData 
+              : activeReport === "appointment" ? appointmentData 
+              : activeReport === "academy-fees" ? academyFeesData : [];
       fileName = `${activeReport}_Report_Full`;
       
       if (dataset.length > 0) {
@@ -207,11 +208,7 @@ export default function ReportsPage() {
   // 7. Appointment Report Data
   const appointmentData = appointments;
 
-  // 8. Academy Fees Report Data
-  const academyFeesData = [
-    { student: "Emily Blunt", course: "Masters Diploma in Cosmetology", total: 120000, paid: 60000, balance: 60000, status: "Partial" },
-    { student: "John Krasinski", course: "Professional Bridal Makeup Artistry", total: 60000, paid: 60000, balance: 0, status: "Paid" }
-  ];
+  // 8. Academy Fees Report Data (loaded dynamically from academy_fees collection above)
 
   // Report configurations metadata
   const reportsList = [

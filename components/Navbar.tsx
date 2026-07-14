@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Bell, LogOut, ChevronDown, User, CreditCard, Sun, CloudSun } from "lucide-react";
+import { Bell, LogOut, ChevronDown, User, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -11,16 +11,14 @@ export const Navbar: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   
-  // Custom states for Clock, Date, Weather & Greeting
   const [time, setTime] = useState("");
   const [dateStr, setDateStr] = useState("");
   const [greeting, setGreeting] = useState("");
-  const [weather, setWeather] = useState({ temp: 26, status: "Sunny", city: "New York" });
 
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Clock & Day-based Greeting
+    // Clock & Day-based Greeting
     const updateTimeAndGreetings = () => {
       const now = new Date();
       setTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -39,22 +37,6 @@ export const Navbar: React.FC = () => {
 
     updateTimeAndGreetings();
     const interval = setInterval(updateTimeAndGreetings, 1000);
-
-    // 2. Geolocation Weather Setup
-    fetch("https://ipapi.co/json/")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.city) {
-          const hash = data.city.length;
-          const temp = 22 + (hash % 10);
-          const status = hash % 2 === 0 ? "Sunny" : "Partly Cloudy";
-          setWeather({ temp, status, city: data.city });
-        }
-      })
-      .catch(() => {
-        // Fallback gracefully
-        setWeather({ temp: 24, status: "Sunny", city: user?.branchName || "Main Branch" });
-      });
 
     return () => clearInterval(interval);
   }, [user]);
@@ -85,7 +67,7 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Middle: Date, Clock, Weather & Greetings */}
+      {/* Middle: Date, Clock & Greetings */}
       <div className="hidden lg:flex items-center gap-6 text-slate-650 bg-slate-50/50 px-5 py-2 rounded-2xl border border-slate-100">
         <div className="flex flex-col">
           <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{greeting}</span>
@@ -93,20 +75,6 @@ export const Navbar: React.FC = () => {
             <span>{dateStr}</span>
             <span className="h-1 w-1 rounded-full bg-slate-300" />
             <span className="font-mono text-slate-600">{time}</span>
-          </div>
-        </div>
-
-        <span className="h-6 w-[1px] bg-slate-200" />
-
-        <div className="flex items-center gap-2 text-xxs font-semibold text-slate-600">
-          {weather.status === "Sunny" ? (
-            <Sun className="text-amber-500 animate-spin-slow h-4 w-4" />
-          ) : (
-            <CloudSun className="text-slate-400 h-4 w-4" />
-          )}
-          <div className="flex flex-col">
-            <span className="text-slate-800 font-bold">{weather.city}</span>
-            <span className="text-[10px] text-slate-400 font-medium">{weather.status}, {weather.temp}°C</span>
           </div>
         </div>
       </div>

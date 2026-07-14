@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 interface LoaderProps {
   size?: "sm" | "md" | "lg";
@@ -11,6 +11,16 @@ export const Loader: React.FC<LoaderProps> = ({
   className = "", 
   fullScreen = false 
 }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
   const sizeClasses = {
     sm: "h-5 w-5 border-2",
     md: "h-8 w-8 border-3",
@@ -23,14 +33,15 @@ export const Loader: React.FC<LoaderProps> = ({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm" suppressHydrationWarning>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
         {spinner}
       </div>
     );
   }
 
-  return <div className="flex items-center justify-center p-4" suppressHydrationWarning>{spinner}</div>;
+  return <div className="flex items-center justify-center p-4">{spinner}</div>;
 };
+
 
 export const Skeleton: React.FC<{ className?: string }> = ({ className = "" }) => {
   return (

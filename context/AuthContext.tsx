@@ -167,6 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setUser(null);
     localStorage.removeItem("erpsaloon_session_user");
+    localStorage.removeItem("weather_city");
     // Clear cookie
     document.cookie = "erpsaloon_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     router.push("/login");
