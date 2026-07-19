@@ -65,15 +65,15 @@ export function Table<TData>({
       )}
 
       <div className="w-full overflow-hidden rounded-2xl border border-slate-100 shadow-xs">
-        <div className="w-full overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm text-slate-500">
-            <thead className="bg-slate-50/50 text-xs font-semibold uppercase tracking-wider text-slate-600 border-b border-slate-100">
+        <div className="w-full overflow-x-auto scrollbar-thin">
+          <table className="w-full border-collapse text-left text-xs sm:text-sm text-slate-500">
+            <thead className="bg-slate-50/50 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-600 border-b border-slate-100">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-6 py-4 font-medium text-slate-700 whitespace-nowrap"
+                      className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 font-medium text-slate-700 whitespace-nowrap"
                     >
                       {header.isPlaceholder ? null : (
                         <div
@@ -85,7 +85,7 @@ export function Table<TData>({
                             header.getContext()
                           )}
                           {header.column.getCanSort() && (
-                            <ArrowUpDown size={14} className="text-slate-400" />
+                            <ArrowUpDown size={14} className="text-slate-400 shrink-0" />
                           )}
                         </div>
                       )}
@@ -101,7 +101,7 @@ export function Table<TData>({
                     {row.getVisibleCells().map((cell) => (
                       <td
                         key={cell.id}
-                        className="px-6 py-4 text-slate-700 whitespace-nowrap align-middle"
+                        className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-slate-700 whitespace-nowrap align-middle"
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>

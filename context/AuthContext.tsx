@@ -15,6 +15,7 @@ interface AdminUser {
   salonName: string;
   branchName: string;
   address: string;
+  phone?: string;
   status: string;
   createdAt: string;
 }
@@ -87,36 +88,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isInitialLoad = true;
     
     // 1. Listen to new Appointments
-    const unsubAppointments = onSnapshot(collection(db, "appointments"), (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added" && !isInitialLoad) {
-          const data = change.doc.data();
-          addRealNotification(`New Appointment: ${data.clientName || "Guest"} for ${data.time || "N/A"}`);
-        }
-      });
-    });
+    const unsubAppointments = onSnapshot(
+      collection(db, "appointments"),
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "added" && !isInitialLoad) {
+            const data = change.doc.data();
+            addRealNotification(`New Appointment: ${data.clientName || "Guest"} for ${data.time || "N/A"}`);
+          }
+        });
+      },
+      (error) => {
+        console.error("Firestore unsubAppointments error:", error);
+      }
+    );
 
     // 2. Listen to new Enquiries
-    const unsubEnquiries = onSnapshot(collection(db, "enquiries"), (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added" && !isInitialLoad) {
-          const data = change.doc.data();
-          addRealNotification(`New Client Enquiry logged for ${data.name || "Guest"}`);
-        }
-      });
-    });
+    const unsubEnquiries = onSnapshot(
+      collection(db, "enquiries"),
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "added" && !isInitialLoad) {
+            const data = change.doc.data();
+            addRealNotification(`New Client Enquiry logged for ${data.name || "Guest"}`);
+          }
+        });
+      },
+      (error) => {
+        console.error("Firestore unsubEnquiries error:", error);
+      }
+    );
 
     // 3. Listen to Inventory changes (Low Stock alerts)
-    const unsubProducts = onSnapshot(collection(db, "products"), (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if ((change.type === "added" || change.type === "modified") && !isInitialLoad) {
-          const data = change.doc.data();
-          if (data.stock <= (data.lowStockAlert || 2)) {
-            addRealNotification(`Low Stock Alert: ${data.name} has only ${data.stock} units remaining.`);
+    const unsubProducts = onSnapshot(
+      collection(db, "products"),
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if ((change.type === "added" || change.type === "modified") && !isInitialLoad) {
+            const data = change.doc.data();
+            if (data.stock <= (data.lowStockAlert || 2)) {
+              addRealNotification(`Low Stock Alert: ${data.name} has only ${data.stock} units remaining.`);
+            }
           }
-        }
-      });
-    });
+        });
+      },
+      (error) => {
+        console.error("Firestore unsubProducts error:", error);
+      }
+    );
 
     // Toggle initial load flag to false after first sync batch completed
     const timer = setTimeout(() => {

@@ -25,7 +25,7 @@ export default function DashboardLayout({
         <Navbar />
         
         {/* Scrollable page content */}
-        <main className="flex-1 p-6 md:p-8 bg-white overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 bg-white overflow-y-auto">
           {children}
         </main>
       </div>

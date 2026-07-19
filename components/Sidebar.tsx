@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "../context/AuthContext";
 import { 
   LayoutDashboard, 
   CreditCard, 
@@ -28,7 +29,8 @@ import {
   ChevronLeft,
   Menu,
   X,
-  Award
+  Award,
+  Phone
 } from "lucide-react";
 
 interface MenuItem {
@@ -40,12 +42,19 @@ interface MenuItem {
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
+  const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [isOpenMobile, setIsOpenMobile] = useState(false);
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({
-    Manage: true,
+    "Manage Masters": true,
   });
+
+  useEffect(() => {
+    const handleToggle = () => setIsOpenMobile((prev) => !prev);
+    window.addEventListener("toggle-mobile-sidebar", handleToggle);
+    return () => window.removeEventListener("toggle-mobile-sidebar", handleToggle);
+  }, []);
 
   const toggleSubMenu = (name: string) => {
     setOpenSubMenus((prev) => ({
@@ -85,9 +94,7 @@ export const Sidebar: React.FC = () => {
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
-  const displayExpanded = !isCollapsed || isHovered;
-
-  const renderLink = (item: MenuItem, isChild = false) => {
+  const renderLink = (item: MenuItem, displayExpanded: boolean, isChild = false) => {
     const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href) && item.href !== "#");
     const Icon = item.icon;
 
@@ -109,82 +116,120 @@ export const Sidebar: React.FC = () => {
             : "text-slate-600 hover:text-primary hover:bg-indigo-50/30"
         }`}
       >
-        <Icon size={16} className={isActive ? "text-white" : "text-slate-400"} />
-        {(displayExpanded || isChild) && <span>{item.name}</span>}
+        <Icon size={16} className={isActive ? "text-white shrink-0" : "text-slate-400 shrink-0"} />
+        {(displayExpanded || isChild) && <span className="truncate">{item.name}</span>}
       </Link>
     );
   };
 
-  const sidebarContent = (
-    <div 
-      className={`flex flex-col h-full bg-white border-r border-slate-100 transition-all duration-300 ${
-        isCollapsed && isHovered 
-          ? "w-[260px] xl:w-[280px] absolute left-0 top-0 bottom-0 shadow-2xl z-40 border-r-slate-200" 
-          : "w-full"
-      }`}
-    >
-      {/* Brand Header */}
-      <div className="flex h-24 items-center justify-between px-6 border-b border-slate-100 bg-white">
-        <div className="flex items-center gap-3">
-          {/* Brand Logo Removed by User Request */}
-        </div>
-        {/* Toggle Button for Desktop */}
-        <button
-          onClick={() => {
-            setIsCollapsed(!isCollapsed);
-            setIsHovered(false);
-          }}
-          className="hidden md:flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
-        >
-          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
-      </div>
+  const renderSidebarContent = (isMobile: boolean = false) => {
+    const displayExpanded = isMobile ? true : (!isCollapsed || isHovered);
 
-      {/* Navigation List */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1 scrollbar-thin">
-        {menuItems.map((item) => {
-          if (item.subItems) {
-            const hasActiveChild = item.subItems.some((child) => pathname === child.href);
-            const isOpen = openSubMenus[item.name] || hasActiveChild;
-
-            return (
-              <div key={item.name} className="space-y-1">
-                <button
-                  onClick={() => toggleSubMenu(item.name)}
-                  className={`flex w-full items-center justify-between px-4 py-3 text-xs font-semibold rounded-xl text-slate-600 hover:text-primary hover:bg-indigo-50/30 transition-all`}
-                >
-                  <div className="flex items-center gap-3">
-                    <item.icon size={16} className="text-slate-400" />
-                    {displayExpanded && <span>{item.name}</span>}
-                  </div>
-                  {displayExpanded && (
-                    <ChevronRight
-                      size={14}
-                      className={`text-slate-400 transition-transform ${isOpen ? "rotate-90" : ""}`}
-                    />
-                  )}
-                </button>
-                {isOpen && displayExpanded && (
-                  <div className="space-y-1 transition-all animate-fade-in">
-                    {item.subItems.map((child) => renderLink(child, true))}
-                  </div>
+    return (
+      <div 
+        className={`flex flex-col h-full bg-white border-r border-slate-100 transition-all duration-300 ${
+          !isMobile && isCollapsed && isHovered 
+            ? "w-[260px] xl:w-[280px] absolute left-0 top-0 bottom-0 shadow-2xl z-40 border-r-slate-200" 
+            : "w-full"
+        }`}
+      >
+        {/* Brand Header */}
+        <div className="flex h-24 items-center justify-between px-6 border-b border-slate-100 bg-white shrink-0">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <img src="/logo.png" className="h-10 w-auto object-contain shrink-0" alt="Logo" />
+            {displayExpanded && (
+              <div className="flex flex-col overflow-hidden">
+                <span className="font-bold text-slate-800 text-xs tracking-tight truncate">
+                  {user?.salonName || "MJ-creationERP"}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium truncate">
+                  {user?.branchName || "Main Branch"}
+                </span>
+                {user?.phone && (
+                  <span className="text-[10px] text-primary font-semibold flex items-center gap-1 mt-0.5 truncate">
+                    <Phone size={10} className="shrink-0" /> {user.phone}
+                  </span>
                 )}
               </div>
-            );
-          }
-          return renderLink(item);
-        })}
+            )}
+          </div>
+          
+          {/* Action Button: Mobile Close or Desktop Collapse Toggle */}
+          {isMobile ? (
+            <button
+              onClick={() => setIsOpenMobile(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setIsCollapsed(!isCollapsed);
+                setIsHovered(false);
+              }}
+              className="hidden md:flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            </button>
+          )}
+        </div>
+
+        {/* Navigation List */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1 scrollbar-thin">
+          {menuItems.map((item) => {
+            if (item.subItems) {
+              const hasActiveChild = item.subItems.some((child) => pathname === child.href);
+              const isOpen = openSubMenus[item.name] || hasActiveChild;
+
+              return (
+                <div key={item.name} className="space-y-1">
+                  <button
+                    onClick={() => toggleSubMenu(item.name)}
+                    className={`flex w-full items-center justify-between px-4 py-3 text-xs font-semibold rounded-xl text-slate-600 hover:text-primary hover:bg-indigo-50/30 transition-all`}
+                  >
+                    <div className="flex items-center gap-3 truncate">
+                      <item.icon size={16} className="text-slate-400 shrink-0" />
+                      {displayExpanded && <span className="truncate">{item.name}</span>}
+                    </div>
+                    {displayExpanded && (
+                      <ChevronRight
+                        size={14}
+                        className={`text-slate-400 transition-transform shrink-0 ${isOpen ? "rotate-90" : ""}`}
+                      />
+                    )}
+                  </button>
+                  {isOpen && displayExpanded && (
+                    <div className="space-y-1 transition-all animate-fade-in">
+                      {item.subItems.map((child) => renderLink(child, displayExpanded, true))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return renderLink(item, displayExpanded);
+          })}
+        </div>
+
+        {/* Footer Contact Info Pill for Desktop expanded mode */}
+        {displayExpanded && user?.phone && !isMobile && (
+          <div className="p-4 border-t border-slate-100 bg-slate-50/50 text-xxs text-slate-500 flex items-center justify-between shrink-0">
+            <span className="font-semibold text-slate-600">Admin Contact</span>
+            <span className="font-mono font-bold text-primary">{user.phone}</span>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
-      {/* Mobile Toggle Button */}
+      {/* Mobile Floating Toggle Button */}
       <div className="md:hidden fixed bottom-4 right-4 z-50">
         <button
           onClick={() => setIsOpenMobile(!isOpenMobile)}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/30 active:scale-95 transition-transform"
+          aria-label="Toggle Navigation Drawer"
         >
           {isOpenMobile ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -198,24 +243,24 @@ export const Sidebar: React.FC = () => {
           isCollapsed ? "w-20" : "w-[260px] xl:w-[280px]"
         }`}
       >
-        {sidebarContent}
+        {renderSidebarContent(false)}
       </aside>
 
       {/* Mobile Drawer Backdrop */}
       {isOpenMobile && (
         <div
           onClick={() => setIsOpenMobile(false)}
-          className="md:hidden fixed inset-0 z-45 bg-slate-900/40 backdrop-blur-xs"
+          className="md:hidden fixed inset-0 z-45 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fade-in"
         />
       )}
 
-      {/* Mobile Drawer */}
+      {/* Mobile & Tablet Drawer */}
       <aside
-        className={`md:hidden fixed inset-y-0 left-0 z-50 w-[260px] bg-white transform transition-transform duration-300 ease-in-out ${
+        className={`md:hidden fixed inset-y-0 left-0 z-50 w-[260px] sm:w-[280px] max-w-[85vw] bg-white transform transition-transform duration-300 ease-in-out shadow-2xl ${
           isOpenMobile ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {sidebarContent}
+        {renderSidebarContent(true)}
       </aside>
     </>
   );

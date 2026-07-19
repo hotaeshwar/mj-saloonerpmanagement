@@ -27,6 +27,7 @@ const DEFAULT_MOCK_ADMINS = [
     salonName: "MJ-creationERP",
     branchName: "Downtown Elite",
     address: "101 Premium Avenue, Suite A, Downtown",
+    phone: "+91 98765 43210",
     status: "active",
     createdAt: new Date().toISOString()
   },
@@ -38,6 +39,7 @@ const DEFAULT_MOCK_ADMINS = [
     salonName: "MJ-creationERP",
     branchName: "Downtown Elite",
     address: "101 Premium Avenue, Suite A, Downtown",
+    phone: "+91 98765 43210",
     status: "active",
     createdAt: new Date().toISOString()
   },
@@ -49,6 +51,7 @@ const DEFAULT_MOCK_ADMINS = [
     salonName: "MJ-creationERP",
     branchName: "West End Hub",
     address: "505 Fashion Boulevard, West End",
+    phone: "+91 98765 43210",
     status: "active",
     createdAt: new Date().toISOString()
   }
@@ -93,6 +96,7 @@ export const loginUser = async (email: string, password: string) => {
           salonName: "MJ-creationERP",
           branchName: "Main Branch",
           address: "Branch Location",
+          phone: "+91 98765 43210",
           status: "active",
           createdAt: new Date().toISOString()
         };

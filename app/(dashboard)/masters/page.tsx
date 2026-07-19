@@ -405,10 +405,17 @@ function MastersContent() {
     return list;
   };
 
+  const getItemSingularName = (label: string) => {
+    if (label.endsWith("ies")) return label.slice(0, -3) + "y";
+    if (label.endsWith("ses")) return label.slice(0, -2);
+    if (label.endsWith("s")) return label.slice(0, -1);
+    return label;
+  };
+
   return (
     <div className="space-y-6 bg-white min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4 bg-white">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4 bg-white">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-800">Salon Masters Config</h1>
           <p className="text-xxs text-slate-400 mt-1">Configure service definitions, loyalty items, staff lists, and taxonomy structures.</p>
@@ -419,10 +426,10 @@ function MastersContent() {
             clearImage();
             setModalOpen(true);
           }}
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-xs transition-colors"
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white bg-primary hover:bg-primary-dark rounded-xl shadow-xs transition-colors shrink-0 whitespace-nowrap self-start sm:self-auto"
         >
-          <Plus size={14} />
-          Add Master Record
+          <Plus size={14} className="shrink-0" />
+          <span>Add {getItemSingularName(currentTabInfo.label)}</span>
         </button>
       </div>
 

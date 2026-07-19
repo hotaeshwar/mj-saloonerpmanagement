@@ -256,7 +256,8 @@ export default function QuickBillingPage() {
       </tr>
     `).join("");
 
-    const branchHtml = user ? `<p style="margin: 2px 0;"><strong>Branch:</strong> ${user.branchName}</p><p style="margin: 2px 0;"><strong>Address:</strong> ${user.address}</p>` : "";
+    const contactPhone = user?.phone || "+91 98765 43210";
+    const branchHtml = user ? `<p style="margin: 2px 0;"><strong>Branch:</strong> ${user.branchName}</p><p style="margin: 2px 0;"><strong>Address:</strong> ${user.address}</p><p style="margin: 2px 0;"><strong>Contact Phone:</strong> ${contactPhone}</p>` : "";
     const salonName = user ? user.salonName : "MJ-creationERP";
 
     printWindow.document.write(`
@@ -343,7 +344,7 @@ export default function QuickBillingPage() {
           
           <div class="footer">
             <p>Thank you for choosing ${salonName}!</p>
-            <p>For support, please contact us.</p>
+            <p>For support & inquiries, please contact <strong>${contactPhone}</strong>.</p>
           </div>
           
           <script>

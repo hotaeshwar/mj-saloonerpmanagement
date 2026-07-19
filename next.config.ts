@@ -5,12 +5,20 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "react-hot-toast"
+    ],
+  },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
+  },
+  reactStrictMode: true,
   typescript: {
-    // Ignore TypeScript type errors during build so explicit 'any' doesn't block deployment
     ignoreBuildErrors: true,
   },
   eslint: {
-    // Ignore ESLint checks during build so unused variables/imports don't block deployment
     ignoreDuringBuilds: true,
   },
 };

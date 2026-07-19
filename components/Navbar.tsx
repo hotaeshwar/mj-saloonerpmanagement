@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Bell, LogOut, ChevronDown, User, CreditCard } from "lucide-react";
+import { Bell, LogOut, ChevronDown, User, CreditCard, Menu, Phone } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -50,19 +50,38 @@ export const Navbar: React.FC = () => {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <header className="sticky top-0 z-40 flex h-24 w-full items-center justify-between border-b border-slate-100 bg-white px-6 shadow-xs">
-      {/* Left side: Brand Logo & Branch Address */}
-      <div className="flex items-center gap-3">
-        <img src="/logo.png" className="h-20 w-auto object-contain" alt="Logo" />
-        <div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-slate-800 tracking-tight">{user.salonName}</span>
-            <span className="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-xxs font-medium text-primary">
+    <header className="sticky top-0 z-40 flex h-20 sm:h-24 w-full items-center justify-between border-b border-slate-100 bg-white px-3 sm:px-6 shadow-xs">
+      {/* Left side: Mobile Hamburger, Brand Logo & Branch Address */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <button
+          onClick={() => window.dispatchEvent(new Event("toggle-mobile-sidebar"))}
+          className="md:hidden p-2 rounded-xl text-slate-600 hover:text-primary hover:bg-slate-50 border border-slate-200 transition-colors shrink-0"
+          aria-label="Toggle Sidebar Navigation"
+        >
+          <Menu size={18} />
+        </button>
+
+        <img src="/logo.png" className="h-10 sm:h-16 md:h-20 w-auto object-contain shrink-0" alt="Logo" />
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
+            <span className="font-bold text-slate-800 tracking-tight text-xs sm:text-sm md:text-base whitespace-nowrap truncate max-w-[110px] sm:max-w-xs md:max-w-none">{user.salonName}</span>
+            <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-xxs font-bold text-primary whitespace-nowrap shrink-0">
               {user.role === "SUPER_ADMIN" ? "Super Admin" : "Admin"}
             </span>
           </div>
-          <p className="text-xxs text-slate-400 font-medium hidden sm:block">
-            {user.branchName} • {user.address}
+          <p className="text-xxs text-slate-400 font-medium flex items-center gap-1.5 flex-wrap mt-0.5 max-w-[180px] sm:max-w-md truncate">
+            <span className="truncate">{user.branchName}</span>
+            <span className="hidden sm:inline">•</span>
+            <span className="hidden sm:inline truncate max-w-[150px] md:max-w-[250px]">{user.address}</span>
+            {user.phone && (
+              <>
+                <span className="hidden md:inline">•</span>
+                <span className="hidden md:inline text-slate-700 font-semibold items-center gap-1">
+                  <Phone size={10} className="text-primary shrink-0 inline" />
+                  {user.phone}
+                </span>
+              </>
+            )}
           </p>
         </div>
       </div>
