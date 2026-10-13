@@ -135,8 +135,7 @@ export const Sidebar: React.FC = () => {
         {/* Brand Header */}
         <div className="flex h-24 items-center justify-between px-6 border-b border-slate-100 bg-white shrink-0">
           <div className="flex items-center gap-3 overflow-hidden">
-            <img src="/logo.png" className="h-10 w-auto object-contain shrink-0" alt="Logo" />
-            {displayExpanded && (
+            {displayExpanded ? (
               <div className="flex flex-col overflow-hidden">
                 <span className="font-bold text-slate-800 text-xs tracking-tight truncate">
                   {user?.salonName || "MJ-creationERP"}
@@ -144,6 +143,10 @@ export const Sidebar: React.FC = () => {
                 <span className="text-[10px] text-slate-400 font-medium truncate">
                   {user?.branchName || "Main Branch"}
                 </span>
+              </div>
+            ) : (
+              <div className="h-8 w-8 rounded-lg bg-indigo-50 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                {(user?.salonName || "M").slice(0, 1).toUpperCase()}
               </div>
             )}
           </div>
