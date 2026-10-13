@@ -29,8 +29,7 @@ import {
   ChevronLeft,
   Menu,
   X,
-  Award,
-  Phone
+  Award
 } from "lucide-react";
 
 interface MenuItem {
@@ -145,11 +144,6 @@ export const Sidebar: React.FC = () => {
                 <span className="text-[10px] text-slate-400 font-medium truncate">
                   {user?.branchName || "Main Branch"}
                 </span>
-                {user?.phone && (
-                  <span className="text-[10px] text-primary font-semibold flex items-center gap-1 mt-0.5 truncate">
-                    <Phone size={10} className="shrink-0" /> {user.phone}
-                  </span>
-                )}
               </div>
             )}
           </div>
@@ -210,14 +204,6 @@ export const Sidebar: React.FC = () => {
             return renderLink(item, displayExpanded);
           })}
         </div>
-
-        {/* Footer Contact Info Pill for Desktop expanded mode */}
-        {displayExpanded && user?.phone && !isMobile && (
-          <div className="p-4 border-t border-slate-100 bg-slate-50/50 text-xxs text-slate-500 flex items-center justify-between shrink-0">
-            <span className="font-semibold text-slate-600">Admin Contact</span>
-            <span className="font-mono font-bold text-primary">{user.phone}</span>
-          </div>
-        )}
       </div>
     );
   };
