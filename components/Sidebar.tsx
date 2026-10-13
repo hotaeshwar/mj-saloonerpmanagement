@@ -132,30 +132,13 @@ export const Sidebar: React.FC = () => {
             : "w-full"
         }`}
       >
-        {/* Brand Header */}
-        <div className="flex h-24 items-center justify-between px-6 border-b border-slate-100 bg-white shrink-0">
-          <div className="flex items-center gap-3 overflow-hidden">
-            {displayExpanded ? (
-              <div className="flex flex-col overflow-hidden">
-                <span className="font-bold text-slate-800 text-xs tracking-tight truncate">
-                  {user?.salonName || "MJ-creationERP"}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium truncate">
-                  {user?.branchName || "Main Branch"}
-                </span>
-              </div>
-            ) : (
-              <div className="h-8 w-8 rounded-lg bg-indigo-50 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                {(user?.salonName || "M").slice(0, 1).toUpperCase()}
-              </div>
-            )}
-          </div>
-          
-          {/* Action Button: Mobile Close or Desktop Collapse Toggle */}
+        {/* Sidebar Header with Collapse / Close Toggle */}
+        <div className={`flex h-14 items-center ${displayExpanded ? "justify-end px-4" : "justify-center px-2"} border-b border-slate-100 bg-white shrink-0`}>
           {isMobile ? (
             <button
               onClick={() => setIsOpenMobile(false)}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+              aria-label="Close sidebar"
             >
               <X size={16} />
             </button>
@@ -165,7 +148,8 @@ export const Sidebar: React.FC = () => {
                 setIsCollapsed(!isCollapsed);
                 setIsHovered(false);
               }}
-              className="hidden md:flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+              className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
             </button>
