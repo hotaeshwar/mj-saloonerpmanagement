@@ -9,6 +9,7 @@ import {
   Receipt, 
   Plus, 
   Trash2, 
+  Edit,
   TrendingDown, 
   CalendarDays, 
   BookOpen, 
@@ -18,17 +19,26 @@ import { toast } from "react-hot-toast";
 import { formatCurrency, formatDate } from "../../../firebase/helpers";
 
 export default function ExpensesPage() {
-  const { data: expenses, add: addExpense, remove: deleteExpense } = useCRUD("expenses");
+  const { data: expenses, add: addExpense, update: updateExpense, remove: deleteExpense } = useCRUD("expenses");
   const { data: expenseCategories } = useCRUD("expenseCategories");
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<any>(null);
 
-  // Form states
+  // Form states - Add
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState(0);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [description, setDescription] = useState("");
+
+  // Form states - Edit
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editAmount, setEditAmount] = useState(0);
+  const [editDate, setEditDate] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   // Totals calculations
   const todayStr = new Date().toISOString().split('T')[0];
@@ -63,7 +73,35 @@ export default function ExpensesPage() {
       setAmount(0);
       setDescription("");
       setModalOpen(false);
-      toast.success("Expense voucher logged successfully.");
+    } catch (e) {}
+  };
+
+  const openEditModal = (item: any) => {
+    setSelectedExpense(item);
+    setEditTitle(item.title || "");
+    setEditCategory(item.category || "");
+    setEditAmount(item.amount || 0);
+    setEditDate(item.date || new Date().toISOString().split("T")[0]);
+    setEditDescription(item.description || "");
+    setEditModalOpen(true);
+  };
+
+  const handleEditExpenseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedExpense || !editTitle || !editCategory || editAmount <= 0) {
+      toast.error("Please fill all required expense fields.");
+      return;
+    }
+
+    try {
+      await updateExpense(selectedExpense.id, {
+        title: editTitle,
+        category: editCategory,
+        amount: Number(editAmount) || 0,
+        date: editDate,
+        description: editDescription
+      });
+      setEditModalOpen(false);
     } catch (e) {}
   };
 
@@ -90,16 +128,26 @@ export default function ExpensesPage() {
       cell: ({ row }: any) => {
         const item = row.original;
         return (
-          <button
-            onClick={() => {
-              if (confirm("Delete this expense log?")) {
-                deleteExpense(item.id);
-              }
-            }}
-            className="p-1 text-slate-400 hover:text-danger hover:bg-red-50 rounded-md transition-colors"
-          >
-            <Trash2 size={14} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => openEditModal(item)}
+              title="Edit Expense"
+              className="p-1.5 text-slate-500 hover:text-primary hover:bg-indigo-50/50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Edit size={12} />
+            </button>
+            <button
+              onClick={async () => {
+                if (confirm("Delete this expense log?")) {
+                  await deleteExpense(item.id);
+                }
+              }}
+              title="Delete Expense"
+              className="p-1.5 text-slate-500 hover:text-danger hover:bg-rose-50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
         );
       }
     }
@@ -244,6 +292,96 @@ export default function ExpensesPage() {
               className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
             >
               Confirm Log
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Expense Dialog */}
+      <Modal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title={selectedExpense ? `Edit Expense: ${selectedExpense.title}` : "Edit Expense"}
+        size="md"
+      >
+        <form onSubmit={handleEditExpenseSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Expense Title *</label>
+            <div className="relative">
+              <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+              <input
+                type="text"
+                required
+                placeholder="e.g. Shop Electricity bill July"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700 block">Expense Category *</label>
+              <select
+                required
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+              >
+                <option value="">Choose category...</option>
+                {expenseCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700 block">Date of Expense</label>
+              <input
+                type="date"
+                required
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Voucher Amount (₹) *</label>
+            <input
+              type="number"
+              required
+              min="1"
+              placeholder="e.g. 8500"
+              value={editAmount || ""}
+              onChange={(e) => setEditAmount(parseFloat(e.target.value) || 0)}
+              className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Voucher Notes & Description</label>
+            <textarea
+              rows={2}
+              placeholder="Invoice details, payment modes, approval remarks..."
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800 resize-none"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setEditModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-xs font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
+            >
+              Save Changes
             </button>
           </div>
         </form>

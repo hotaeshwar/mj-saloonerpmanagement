@@ -33,6 +33,13 @@ export default function SettingsPage() {
   const [branchLocation, setBranchLocation] = useState("");
   const [branchPhone, setBranchPhone] = useState("");
 
+  // Edit Branch states
+  const [isEditBranchModalOpen, setIsEditBranchModalOpen] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState<any>(null);
+  const [editBranchName, setEditBranchName] = useState("");
+  const [editBranchLocation, setEditBranchLocation] = useState("");
+  const [editBranchPhone, setEditBranchPhone] = useState("");
+
   // Form states - Admin Profile
   const [editAdminName, setEditAdminName] = useState("");
   const [editSalonName, setEditSalonName] = useState("");
@@ -162,13 +169,37 @@ export default function SettingsPage() {
     }
   };
 
-  // Delete Branch
-  const handleDeleteBranch = async (branch: any) => {
-    if (user?.role !== "SUPER_ADMIN") {
-      toast.error("Super Admin clearance is required to delete branches.");
+  const openEditBranchModal = (branch: any) => {
+    setSelectedBranch(branch);
+    setEditBranchName(branch.name || "");
+    setEditBranchLocation(branch.location || "");
+    setEditBranchPhone(branch.phone || "");
+    setIsEditBranchModalOpen(true);
+  };
+
+  const handleEditBranchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBranch || !editBranchName || !editBranchLocation) {
+      toast.error("Please fill in both branch name and location.");
       return;
     }
 
+    try {
+      await updateDocument("branches", selectedBranch.id, {
+        name: editBranchName,
+        location: editBranchLocation,
+        phone: editBranchPhone || "+91 98765 43210"
+      });
+      setIsEditBranchModalOpen(false);
+      toast.success("Branch location updated successfully.");
+      await refreshBranches();
+    } catch (e: any) {
+      toast.error("Failed to update branch: " + e.message);
+    }
+  };
+
+  // Delete Branch
+  const handleDeleteBranch = async (branch: any) => {
     if (confirm(`Are you sure you want to remove branch location: ${branch.name}?`)) {
       try {
         await deleteDocument("branches", branch.id);
@@ -234,7 +265,7 @@ export default function SettingsPage() {
         const item = row.original;
         const isActive = user?.branchName === item.name;
         return (
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5">
             {!isActive && (
               <button
                 onClick={() => handleActivateBranch(item)}
@@ -244,15 +275,20 @@ export default function SettingsPage() {
                 <CheckCircle2 size={12} />
               </button>
             )}
-            {user?.role === "SUPER_ADMIN" && (
-              <button
-                onClick={() => handleDeleteBranch(item)}
-                title="Delete Branch"
-                className="p-1.5 rounded-lg border border-red-100 text-danger hover:bg-red-50 transition-colors"
-              >
-                <Trash2 size={12} />
-              </button>
-            )}
+            <button
+              onClick={() => openEditBranchModal(item)}
+              title="Edit Branch"
+              className="p-1.5 text-slate-500 hover:text-primary hover:bg-indigo-50/50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Edit3 size={12} />
+            </button>
+            <button
+              onClick={() => handleDeleteBranch(item)}
+              title="Delete Branch"
+              className="p-1.5 text-slate-500 hover:text-danger hover:bg-rose-50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Trash2 size={12} />
+            </button>
           </div>
         );
       }
@@ -497,6 +533,67 @@ export default function SettingsPage() {
               className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
             >
               Save Branch
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Branch Modal */}
+      <Modal
+        isOpen={isEditBranchModalOpen}
+        onClose={() => setIsEditBranchModalOpen(false)}
+        title={selectedBranch ? `Edit Branch: ${selectedBranch.name}` : "Edit Operating Branch"}
+        size="md"
+      >
+        <form onSubmit={handleEditBranchSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Branch Name *</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. East Side Center"
+              value={editBranchName}
+              onChange={(e) => setEditBranchName(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Branch Location (Full Address) *</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. 505 Fashion Boulevard, Suite C, East Side"
+              value={editBranchLocation}
+              onChange={(e) => setEditBranchLocation(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Branch Contact Phone</label>
+            <input
+              type="text"
+              placeholder="e.g. +91 98765 43210"
+              value={editBranchPhone}
+              onChange={(e) => setEditBranchPhone(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800 font-mono"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsEditBranchModalOpen(false)}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-xs font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
+            >
+              Save Changes
             </button>
           </div>
         </form>

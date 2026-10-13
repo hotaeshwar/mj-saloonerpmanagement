@@ -16,7 +16,9 @@ import {
   Check, 
   Printer, 
   PlusCircle, 
-  Clock 
+  Clock,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { formatCurrency, formatDate } from "../../../firebase/helpers";
@@ -29,14 +31,37 @@ export default function AcademyPage() {
   const [modalType, setModalType] = useState<string>("");
 
   // CRUD instances
-  const { data: students, add: addStudent } = useCRUD("academy_students");
-  const { data: batches, add: addBatch } = useCRUD("academy_batches");
+  const { data: students, add: addStudent, update: updateStudent, remove: deleteStudent } = useCRUD("academy_students");
+  const { data: batches, add: addBatch, update: updateBatch, remove: deleteBatch } = useCRUD("academy_batches");
   const { data: courses } = useCRUD("courses");
   const { data: employees } = useCRUD("employees");
-  const { data: attendanceLogs, add: addAttendance } = useCRUD("academy_attendance");
-  const { data: feeLedgers, add: addFee, update: updateFee } = useCRUD("academy_fees");
-  const { data: examScores, add: addExam } = useCRUD("academy_exams");
-  const { data: certificates, add: addCertificate } = useCRUD("academy_certificates");
+  const { data: attendanceLogs, add: addAttendance, update: updateAttendance, remove: deleteAttendance } = useCRUD("academy_attendance");
+  const { data: feeLedgers, add: addFee, update: updateFee, remove: deleteFee } = useCRUD("academy_fees");
+  const { data: examScores, add: addExam, update: updateExam, remove: deleteExam } = useCRUD("academy_exams");
+  const { data: certificates, add: addCertificate, update: updateCertificate, remove: deleteCertificate } = useCRUD("academy_certificates");
+
+  // Edit Academy item modal states
+  const [editAcademyOpen, setEditAcademyOpen] = useState(false);
+  const [editAcademyType, setEditAcademyType] = useState<"student" | "batch" | "attendance" | "fee" | "exam" | "certificate">("student");
+  const [editingAcademyItem, setEditingAcademyItem] = useState<any>(null);
+
+  // Edit fields
+  const [editFieldName, setEditFieldName] = useState("");
+  const [editFieldPhone, setEditFieldPhone] = useState("");
+  const [editFieldEmail, setEditFieldEmail] = useState("");
+  const [editFieldCourse, setEditFieldCourse] = useState("");
+  const [editFieldBatch, setEditFieldBatch] = useState("");
+  const [editFieldTiming, setEditFieldTiming] = useState("");
+  const [editFieldFaculty, setEditFieldFaculty] = useState("");
+  const [editFieldDate, setEditFieldDate] = useState("");
+  const [editFieldStatus, setEditFieldStatus] = useState("");
+  const [editFieldRemark, setEditFieldRemark] = useState("");
+  const [editFieldTotal, setEditFieldTotal] = useState(0);
+  const [editFieldPaid, setEditFieldPaid] = useState(0);
+  const [editFieldDueDate, setEditFieldDueDate] = useState("");
+  const [editFieldExam, setEditFieldExam] = useState("");
+  const [editFieldScore, setEditFieldScore] = useState("");
+  const [editFieldResult, setEditFieldResult] = useState("");
 
   // Local Form state placeholders
   const [studentName, setStudentName] = useState("");
@@ -214,6 +239,108 @@ export default function AcademyPage() {
     toast.success(`Printing Certificate ID: ${item.id} for ${item.student}`);
   };
 
+  const openEditAcademyModal = (type: "student" | "batch" | "attendance" | "fee" | "exam" | "certificate", item: any) => {
+    setEditAcademyType(type);
+    setEditingAcademyItem(item);
+    if (type === "student") {
+      setEditFieldName(item.name || "");
+      setEditFieldPhone(item.phone || "");
+      setEditFieldEmail(item.email || "");
+      setEditFieldCourse(item.enrolledCourse || "");
+      setEditFieldBatch(item.batch || "Unassigned");
+      setEditFieldStatus(item.status || "Active");
+    } else if (type === "batch") {
+      setEditFieldName(item.name || "");
+      setEditFieldTiming(item.timing || "");
+      setEditFieldCourse(item.course || "");
+      setEditFieldFaculty(item.faculty || "Unassigned");
+    } else if (type === "attendance") {
+      setEditFieldName(item.student || "");
+      setEditFieldDate(item.date || "");
+      setEditFieldStatus(item.status || "Present");
+      setEditFieldRemark(item.remark || "");
+    } else if (type === "fee") {
+      setEditFieldName(item.student || "");
+      setEditFieldCourse(item.course || "");
+      setEditFieldTotal(item.total || 0);
+      setEditFieldPaid(item.paid || 0);
+      setEditFieldDueDate(item.dueDate || "");
+      setEditFieldStatus(item.status || "Unpaid");
+    } else if (type === "exam") {
+      setEditFieldName(item.student || "");
+      setEditFieldExam(item.exam || "");
+      setEditFieldScore(item.score || "");
+      setEditFieldDate(item.date || "");
+      setEditFieldResult(item.result || "Pass");
+    } else if (type === "certificate") {
+      setEditFieldName(item.student || "");
+      setEditFieldCourse(item.course || "");
+      setEditFieldDate(item.issuedDate || "");
+      setEditFieldFaculty(item.authority || "");
+      setEditFieldStatus(item.status || "Issued");
+    }
+    setEditAcademyOpen(true);
+  };
+
+  const handleEditAcademySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAcademyItem) return;
+
+    try {
+      if (editAcademyType === "student") {
+        await updateStudent(editingAcademyItem.id, {
+          name: editFieldName,
+          phone: editFieldPhone,
+          email: editFieldEmail,
+          enrolledCourse: editFieldCourse,
+          batch: editFieldBatch,
+          status: editFieldStatus
+        });
+      } else if (editAcademyType === "batch") {
+        await updateBatch(editingAcademyItem.id, {
+          name: editFieldName,
+          timing: editFieldTiming,
+          course: editFieldCourse,
+          faculty: editFieldFaculty
+        });
+      } else if (editAcademyType === "attendance") {
+        await updateAttendance(editingAcademyItem.id, {
+          date: editFieldDate,
+          status: editFieldStatus,
+          remark: editFieldRemark
+        });
+      } else if (editAcademyType === "fee") {
+        const total = Number(editFieldTotal) || 0;
+        const paid = Number(editFieldPaid) || 0;
+        await updateFee(editingAcademyItem.id, {
+          total,
+          paid,
+          balance: Math.max(0, total - paid),
+          dueDate: editFieldDueDate,
+          status: paid >= total ? "Paid" : "Pending"
+        });
+      } else if (editAcademyType === "exam") {
+        await updateExam(editingAcademyItem.id, {
+          exam: editFieldExam,
+          score: editFieldScore,
+          date: editFieldDate,
+          result: editFieldResult
+        });
+      } else if (editAcademyType === "certificate") {
+        await updateCertificate(editingAcademyItem.id, {
+          course: editFieldCourse,
+          issuedDate: editFieldDate,
+          authority: editFieldFaculty,
+          status: editFieldStatus
+        });
+      }
+      setEditAcademyOpen(false);
+      toast.success("Academy record updated successfully.");
+    } catch (e: any) {
+      toast.error("Failed to update record: " + e.message);
+    }
+  };
+
   // Dynamic Render columns depending on active tab
   const studentCols = [
     { accessorKey: "name", header: "Student Name", cell: ({ row }: any) => <span className="font-semibold text-slate-800">{row.getValue("name")}</span> },
@@ -221,6 +348,35 @@ export default function AcademyPage() {
     { accessorKey: "enrolledCourse", header: "Enrolled Course" },
     { accessorKey: "batch", header: "Batch" },
     { accessorKey: "status", header: "Enroll Status", cell: ({ row }: any) => <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-bold text-[10px]">Active</span> },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }: any) => {
+        const item = row.original;
+        return (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => openEditAcademyModal("student", item)}
+              title="Edit Student"
+              className="p-1.5 text-slate-500 hover:text-primary hover:bg-indigo-50/50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Edit size={12} />
+            </button>
+            <button
+              onClick={async () => {
+                if (confirm(`Remove student "${item.name}"?`)) {
+                  await deleteStudent(item.id);
+                }
+              }}
+              title="Delete Student"
+              className="p-1.5 text-slate-500 hover:text-danger hover:bg-rose-50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        );
+      }
+    }
   ];
 
   const batchCols = [
@@ -228,6 +384,35 @@ export default function AcademyPage() {
     { accessorKey: "course", header: "Course Plan" },
     { accessorKey: "timing", header: "Timing Slot" },
     { accessorKey: "faculty", header: "Instructing Faculty" },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }: any) => {
+        const item = row.original;
+        return (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => openEditAcademyModal("batch", item)}
+              title="Edit Batch"
+              className="p-1.5 text-slate-500 hover:text-primary hover:bg-indigo-50/50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Edit size={12} />
+            </button>
+            <button
+              onClick={async () => {
+                if (confirm(`Remove batch "${item.name}"?`)) {
+                  await deleteBatch(item.id);
+                }
+              }}
+              title="Delete Batch"
+              className="p-1.5 text-slate-500 hover:text-danger hover:bg-rose-50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        );
+      }
+    }
   ];
 
   const attendanceCols = [
@@ -249,6 +434,35 @@ export default function AcademyPage() {
       }
     },
     { accessorKey: "remark", header: "Notes" },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }: any) => {
+        const item = row.original;
+        return (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => openEditAcademyModal("attendance", item)}
+              title="Edit Attendance"
+              className="p-1.5 text-slate-500 hover:text-primary hover:bg-indigo-50/50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Edit size={12} />
+            </button>
+            <button
+              onClick={async () => {
+                if (confirm(`Remove attendance for "${item.student}"?`)) {
+                  await deleteAttendance(item.id);
+                }
+              }}
+              title="Delete Attendance"
+              className="p-1.5 text-slate-500 hover:text-danger hover:bg-rose-50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        );
+      }
+    }
   ];
 
   const feeCols = [
@@ -260,18 +474,40 @@ export default function AcademyPage() {
     { accessorKey: "dueDate", header: "Due Date/Status" },
     {
       id: "actions",
-      header: "Payments",
+      header: "Actions",
       cell: ({ row }: any) => {
         const item = row.original;
-        return item.balance > 0 ? (
-          <button
-            onClick={() => handlePayFees(item)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary text-white font-bold text-[10px] rounded-lg shadow-xs"
-          >
-            <CreditCard size={10} /> Collect Fee
-          </button>
-        ) : (
-          <span className="text-emerald-600 font-bold text-[10px] flex items-center gap-0.5"><Check size={12} /> Clear</span>
+        return (
+          <div className="flex items-center gap-1.5">
+            {item.balance > 0 ? (
+              <button
+                onClick={() => handlePayFees(item)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary text-white font-bold text-[10px] rounded-lg shadow-xs"
+              >
+                <CreditCard size={10} /> Collect Fee
+              </button>
+            ) : (
+              <span className="text-emerald-600 font-bold text-[10px] flex items-center gap-0.5"><Check size={12} /> Clear</span>
+            )}
+            <button
+              onClick={() => openEditAcademyModal("fee", item)}
+              title="Edit Fee Ledger"
+              className="p-1.5 text-slate-500 hover:text-primary hover:bg-indigo-50/50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Edit size={12} />
+            </button>
+            <button
+              onClick={async () => {
+                if (confirm(`Remove fee record for "${item.student}"?`)) {
+                  await deleteFee(item.id);
+                }
+              }}
+              title="Delete Fee Record"
+              className="p-1.5 text-slate-500 hover:text-danger hover:bg-rose-50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
         );
       }
     }
@@ -283,6 +519,35 @@ export default function AcademyPage() {
     { accessorKey: "score", header: "Score Grade", cell: ({ row }: any) => <span className="font-bold text-slate-700">{row.getValue("score")}</span> },
     { accessorKey: "date", header: "Exam Date" },
     { accessorKey: "result", header: "Status", cell: ({ row }: any) => <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-bold text-[10px]">Pass</span> },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }: any) => {
+        const item = row.original;
+        return (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => openEditAcademyModal("exam", item)}
+              title="Edit Exam Record"
+              className="p-1.5 text-slate-500 hover:text-primary hover:bg-indigo-50/50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Edit size={12} />
+            </button>
+            <button
+              onClick={async () => {
+                if (confirm(`Remove exam score for "${item.student}"?`)) {
+                  await deleteExam(item.id);
+                }
+              }}
+              title="Delete Exam Score"
+              className="p-1.5 text-slate-500 hover:text-danger hover:bg-rose-50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        );
+      }
+    }
   ];
 
   const certificateCols = [
@@ -292,18 +557,38 @@ export default function AcademyPage() {
     { accessorKey: "authority", header: "Signed Faculty" },
     {
       id: "actions",
-      header: "Output",
+      header: "Actions",
       cell: ({ row }: any) => {
         const item = row.original;
-        return item.status === "Issued" ? (
-          <button
-            onClick={() => handlePrintCertificate(item)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-850 hover:bg-slate-900 text-white font-bold text-[10px] rounded-lg shadow-xs"
-          >
-            <Printer size={10} /> Print PDF
-          </button>
-        ) : (
-          <span className="text-slate-400 text-xxs font-medium italic">Pending exam marks</span>
+        return (
+          <div className="flex items-center gap-1.5">
+            {item.status === "Issued" && (
+              <button
+                onClick={() => handlePrintCertificate(item)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-850 hover:bg-slate-900 text-white font-bold text-[10px] rounded-lg shadow-xs"
+              >
+                <Printer size={10} /> Print
+              </button>
+            )}
+            <button
+              onClick={() => openEditAcademyModal("certificate", item)}
+              title="Edit Certificate"
+              className="p-1.5 text-slate-500 hover:text-primary hover:bg-indigo-50/50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Edit size={12} />
+            </button>
+            <button
+              onClick={async () => {
+                if (confirm(`Remove certificate for "${item.student}"?`)) {
+                  await deleteCertificate(item.id);
+                }
+              }}
+              title="Delete Certificate"
+              className="p-1.5 text-slate-500 hover:text-danger hover:bg-rose-50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
         );
       }
     }
@@ -932,6 +1217,349 @@ export default function AcademyPage() {
               className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
             >
               Award Certificate
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Academy Record Modal */}
+      <Modal
+        isOpen={editAcademyOpen}
+        onClose={() => setEditAcademyOpen(false)}
+        title={`Edit ${editAcademyType.charAt(0).toUpperCase() + editAcademyType.slice(1)} Record`}
+        size="md"
+      >
+        <form onSubmit={handleEditAcademySubmit} className="space-y-4">
+          {editAcademyType === "student" && (
+            <>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 block">Student Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFieldName}
+                  onChange={(e) => setEditFieldName(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Mobile *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFieldPhone}
+                    onChange={(e) => setEditFieldPhone(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Email</label>
+                  <input
+                    type="email"
+                    value={editFieldEmail}
+                    onChange={(e) => setEditFieldEmail(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Enrolled Course Plan</label>
+                  <select
+                    value={editFieldCourse}
+                    onChange={(e) => setEditFieldCourse(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+                  >
+                    <option value="">Choose course...</option>
+                    {courses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Assigned Batch</label>
+                  <select
+                    value={editFieldBatch}
+                    onChange={(e) => setEditFieldBatch(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+                  >
+                    <option value="Unassigned">Unassigned</option>
+                    {batches.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 block">Status</label>
+                <select
+                  value={editFieldStatus}
+                  onChange={(e) => setEditFieldStatus(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          {editAcademyType === "batch" && (
+            <>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 block">Batch Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFieldName}
+                  onChange={(e) => setEditFieldName(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 block">Timing Slot *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFieldTiming}
+                  onChange={(e) => setEditFieldTiming(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Linked Course *</label>
+                  <select
+                    value={editFieldCourse}
+                    onChange={(e) => setEditFieldCourse(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+                  >
+                    <option value="">Select course...</option>
+                    {courses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Faculty Instructor</label>
+                  <select
+                    value={editFieldFaculty}
+                    onChange={(e) => setEditFieldFaculty(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+                  >
+                    <option value="Unassigned">Unassigned</option>
+                    {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {editAcademyType === "attendance" && (
+            <>
+              <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-slate-700">
+                Student: {editFieldName}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={editFieldDate}
+                    onChange={(e) => setEditFieldDate(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Attendance Status *</label>
+                  <select
+                    value={editFieldStatus}
+                    onChange={(e) => setEditFieldStatus(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+                  >
+                    <option value="Present">Present</option>
+                    <option value="Late">Late</option>
+                    <option value="Absent">Absent</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 block">Remarks / Notes</label>
+                <input
+                  type="text"
+                  value={editFieldRemark}
+                  onChange={(e) => setEditFieldRemark(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                />
+              </div>
+            </>
+          )}
+
+          {editAcademyType === "fee" && (
+            <>
+              <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-slate-700">
+                Student: {editFieldName} • Course: {editFieldCourse}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Total Tuition Fee (₹) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={editFieldTotal}
+                    onChange={(e) => setEditFieldTotal(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Amount Paid To Date (₹) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={editFieldPaid}
+                    onChange={(e) => setEditFieldPaid(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Balance Pending</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={`₹${Math.max(0, editFieldTotal - editFieldPaid)}`}
+                    className="w-full px-3.5 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl text-slate-600 font-bold"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Due Date / Status</label>
+                  <input
+                    type="text"
+                    value={editFieldDueDate}
+                    onChange={(e) => setEditFieldDueDate(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {editAcademyType === "exam" && (
+            <>
+              <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-slate-700">
+                Student: {editFieldName}
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 block">Exam Subject / Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFieldExam}
+                  onChange={(e) => setEditFieldExam(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Score / Grade *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFieldScore}
+                    onChange={(e) => setEditFieldScore(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={editFieldDate}
+                    onChange={(e) => setEditFieldDate(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Result</label>
+                  <select
+                    value={editFieldResult}
+                    onChange={(e) => setEditFieldResult(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+                  >
+                    <option value="Pass">Pass</option>
+                    <option value="Fail">Fail</option>
+                    <option value="Distinction">Distinction</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {editAcademyType === "certificate" && (
+            <>
+              <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-slate-700">
+                Student: {editFieldName}
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 block">Course Major *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFieldCourse}
+                  onChange={(e) => setEditFieldCourse(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Award Date</label>
+                  <input
+                    type="date"
+                    value={editFieldDate}
+                    onChange={(e) => setEditFieldDate(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700 block">Signing Faculty</label>
+                  <select
+                    value={editFieldFaculty}
+                    onChange={(e) => setEditFieldFaculty(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+                  >
+                    <option value="">Select faculty...</option>
+                    {employees.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 block">Status</label>
+                <select
+                  value={editFieldStatus}
+                  onChange={(e) => setEditFieldStatus(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-850"
+                >
+                  <option value="Issued">Issued</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setEditAcademyOpen(false)}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-xs font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
+            >
+              Save Record
             </button>
           </div>
         </form>

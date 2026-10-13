@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { logoutUser } from "../firebase/auth";
 import { db } from "../firebase/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
-import { toast } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 
 interface AdminUser {
   uid: string;
@@ -210,6 +210,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={{ user, loading, loginSession, updateUserSession, logoutSession, notifications, clearNotification }}>
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          className: 'text-xs font-semibold rounded-xl border border-slate-100 shadow-lg text-slate-800 bg-white p-3',
+          duration: 4000,
+        }} 
+      />
       {children}
     </AuthContext.Provider>
   );

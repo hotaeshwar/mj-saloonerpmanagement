@@ -54,6 +54,7 @@ const baseOptions = {
       },
     },
     y: {
+      beginAtZero: true,
       grid: {
         color: "#f1f5f9",
       },
@@ -66,16 +67,26 @@ const baseOptions = {
 };
 
 /**
- * Monthly Revenue Chart (Area Chart)
+ * Monthly Revenue Chart (Area Chart) computed dynamically from bills
  */
-export const RevenueChart: React.FC = () => {
+export const RevenueChart: React.FC<{ bills?: any[] }> = ({ bills = [] }) => {
+  const currentYear = new Date().getFullYear();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const monthlyData = months.map((_, index) => {
+    const monthPrefix = `${currentYear}-${String(index + 1).padStart(2, "0")}`;
+    return bills
+      .filter((b) => b.date && b.date.startsWith(monthPrefix))
+      .reduce((sum, b) => sum + (Number(b.grandTotal) || 0), 0);
+  });
+
   const data = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    labels: months,
     datasets: [
       {
         fill: true,
         label: "Revenue (₹)",
-        data: [45000, 52000, 49000, 63000, 58000, 71000, 85000, 78000, 92000, 88000, 105000, 120000],
+        data: monthlyData,
         borderColor: "#6D5BFF",
         backgroundColor: "rgba(109, 91, 255, 0.08)",
         tension: 0.4,
@@ -93,15 +104,25 @@ export const RevenueChart: React.FC = () => {
 };
 
 /**
- * Expense Bar Chart
+ * Expense Bar Chart computed dynamically from expenses
  */
-export const ExpenseChart: React.FC = () => {
+export const ExpenseChart: React.FC<{ expenses?: any[] }> = ({ expenses = [] }) => {
+  const currentYear = new Date().getFullYear();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const monthlyData = months.map((_, index) => {
+    const monthPrefix = `${currentYear}-${String(index + 1).padStart(2, "0")}`;
+    return expenses
+      .filter((e) => e.date && e.date.startsWith(monthPrefix))
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  });
+
   const data = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    labels: months,
     datasets: [
       {
         label: "Expenses (₹)",
-        data: [15000, 18000, 12000, 22000, 19000, 25000, 31000, 28000, 30000, 26000, 35000, 42000],
+        data: monthlyData,
         backgroundColor: "#00C2FF",
         borderRadius: 6,
         barPercentage: 0.6,
@@ -117,19 +138,39 @@ export const ExpenseChart: React.FC = () => {
 };
 
 /**
- * Client Growth (Line Chart)
+ * Client Growth (Line Chart) computed dynamically from registered clients
  */
-export const ClientGrowthChart: React.FC = () => {
+export const ClientGrowthChart: React.FC<{ clients?: any[] }> = ({ clients = [] }) => {
+  const currentYear = new Date().getFullYear();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  // Monthly new clients
+  const monthlyData = months.map((_, index) => {
+    const monthPrefix = `${currentYear}-${String(index + 1).padStart(2, "0")}`;
+    return clients.filter((c) => {
+      const dateStr = c.createdAt ? c.createdAt.slice(0, 7) : "";
+      return dateStr === monthPrefix;
+    }).length;
+  });
+
+  // Cumulative client growth
+  let runningTotal = 0;
+  const cumulativeData = monthlyData.map((count) => {
+    runningTotal += count;
+    return runningTotal;
+  });
+
   const data = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    labels: months,
     datasets: [
       {
         label: "Total Clients",
-        data: [120, 145, 170, 210, 250, 310, 380, 440, 510, 580, 660, 750],
+        data: cumulativeData,
         borderColor: "#22C55E",
-        backgroundColor: "transparent",
+        backgroundColor: "rgba(34, 197, 94, 0.08)",
         tension: 0.3,
         borderWidth: 3,
+        fill: true,
         pointBackgroundColor: "#22C55E",
       },
     ],
@@ -143,22 +184,50 @@ export const ClientGrowthChart: React.FC = () => {
 };
 
 /**
- * Appointment Graphs (Bar/Line Chart)
+ * Appointment Graphs (Bar/Line Chart) computed dynamically from weekly appointments
  */
-export const AppointmentChart: React.FC = () => {
+export const AppointmentChart: React.FC<{ appointments?: any[] }> = ({ appointments = [] }) => {
+  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  // Get current week's dates (Monday to Sunday)
+  const now = new Date();
+  const dayIndex = (now.getDay() + 6) % 7; // Monday = 0
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - dayIndex);
+
+  const weekDates = daysOfWeek.map((_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d.toISOString().split("T")[0];
+  });
+
+  const completedData = weekDates.map((dateStr) => {
+    return appointments.filter(
+      (a) => (a.date === dateStr || (a.createdAt && a.createdAt.startsWith(dateStr))) && 
+             (a.status === "Completed" || a.status === "Confirmed")
+    ).length;
+  });
+
+  const pendingData = weekDates.map((dateStr) => {
+    return appointments.filter(
+      (a) => (a.date === dateStr || (a.createdAt && a.createdAt.startsWith(dateStr))) && 
+             (a.status === "Pending" || a.status === "Cancelled")
+    ).length;
+  });
+
   const data = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    labels: daysOfWeek,
     datasets: [
       {
-        label: "Completed",
-        data: [14, 18, 15, 22, 28, 35, 42],
+        label: "Completed / Confirmed",
+        data: completedData,
         backgroundColor: "#6D5BFF",
         borderRadius: 4,
         barPercentage: 0.5,
       },
       {
-        label: "Cancelled",
-        data: [2, 1, 3, 2, 4, 3, 5],
+        label: "Pending / Cancelled",
+        data: pendingData,
         backgroundColor: "#EF4444",
         borderRadius: 4,
         barPercentage: 0.5,

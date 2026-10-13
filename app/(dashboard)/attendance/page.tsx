@@ -16,7 +16,8 @@ import {
   QrCode,
   UserCheck,
   Calendar,
-  Trash2
+  Trash2,
+  Edit
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { formatDate } from "../../../firebase/helpers";
@@ -31,12 +32,21 @@ const getQRData = () => {
 
 export default function AttendancePage() {
   const { data: employees } = useCRUD("employees");
-  const { data: logs, add: addLog, update: updateLog } = useCRUD("attendance_logs");
+  const { data: logs, add: addLog, update: updateLog, remove: deleteLog } = useCRUD("attendance_logs");
   const { data: holidays, add: addHoliday, remove: removeHoliday } = useCRUD("holidays");
   
   // Date and employee filters
   const [dateFilter, setDateFilter] = useState<"Today" | "This Month" | "All">("Today");
   const [employeeFilter, setEmployeeFilter] = useState<string>("All");
+
+  // Edit attendance log modal states
+  const [editLogOpen, setEditLogOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [editInTime, setEditInTime] = useState("");
+  const [editOutTime, setEditOutTime] = useState("");
+  const [editHours, setEditHours] = useState<number>(8);
+  const [editStatus, setEditStatus] = useState("Present");
+  const [editBranch, setEditBranch] = useState("Main Branch");
 
   // Excel Month & Year download filters
   const [exportMonth, setExportMonth] = useState<string>(String(new Date().getMonth() + 1));
@@ -309,6 +319,34 @@ export default function AttendancePage() {
   const loggedEmployeeNames = new Set(filteredLogs.map(l => l.name));
   const absentCount = employees.filter(emp => !loggedEmployeeNames.has(emp.name)).length;
 
+  const openEditLogModal = (item: any) => {
+    setSelectedLog(item);
+    setEditInTime(item.inTime || "09:00 AM");
+    setEditOutTime(item.outTime || "06:00 PM");
+    setEditHours(item.hours || 8);
+    setEditStatus(item.status || "Present");
+    setEditBranch(item.branch || "Main Branch");
+    setEditLogOpen(true);
+  };
+
+  const handleEditLogSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLog) return;
+    try {
+      await updateLog(selectedLog.id, {
+        inTime: editInTime,
+        outTime: editOutTime,
+        hours: Number(editHours) || 0,
+        status: editStatus,
+        branch: editBranch
+      });
+      setEditLogOpen(false);
+      toast.success("Attendance record updated.");
+    } catch (e: any) {
+      toast.error("Failed to update: " + e.message);
+    }
+  };
+
   const columns = [
     { accessorKey: "date", header: "DATE" },
     { accessorKey: "day", header: "DAY" },
@@ -328,17 +366,38 @@ export default function AttendancePage() {
       header: "ACTION",
       cell: ({ row }: any) => {
         const item = row.original;
-        if (!item.outTime || item.outTime === "N/A" || item.outTime === "In Progress") {
-          return (
+        const isPending = !item.outTime || item.outTime === "N/A" || item.outTime === "In Progress";
+        return (
+          <div className="flex items-center gap-1.5">
+            {isPending && (
+              <button
+                onClick={() => handleCheckout(item)}
+                title="Check Out Staff"
+                className="px-2 py-1 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold text-[10px] rounded-lg border border-rose-200/50"
+              >
+                Check Out
+              </button>
+            )}
             <button
-              onClick={() => handleCheckout(item)}
-              className="px-2.5 py-1 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold text-[10px] rounded-lg border border-rose-200/50"
+              onClick={() => openEditLogModal(item)}
+              title="Edit Attendance Record"
+              className="p-1.5 text-slate-500 hover:text-primary hover:bg-indigo-50/50 rounded-lg transition-colors border border-slate-200/70"
             >
-              Check Out
+              <Edit size={12} />
             </button>
-          );
-        }
-        return <span className="text-[10px] font-bold text-slate-400">Completed</span>;
+            <button
+              onClick={async () => {
+                if (confirm(`Remove attendance record for ${item.name} on ${item.date}?`)) {
+                  await deleteLog(item.id);
+                }
+              }}
+              title="Delete Attendance Record"
+              className="p-1.5 text-slate-500 hover:text-danger hover:bg-rose-50 rounded-lg transition-colors border border-slate-200/70"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        );
       }
     }
   ];
@@ -793,6 +852,103 @@ export default function AttendancePage() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Edit Attendance Record Modal */}
+      <Modal
+        isOpen={editLogOpen}
+        onClose={() => setEditLogOpen(false)}
+        title={selectedLog ? `Edit Attendance: ${selectedLog.name}` : "Edit Attendance Record"}
+        size="md"
+      >
+        <form onSubmit={handleEditLogSubmit} className="space-y-4">
+          <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl space-y-1 text-xs">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Employee</span>
+              <span className="font-bold text-slate-800">{selectedLog?.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Date</span>
+              <span className="text-slate-700">{selectedLog?.date} ({selectedLog?.day})</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700 block">Check In Time</label>
+              <input
+                type="text"
+                placeholder="e.g. 09:30 AM"
+                value={editInTime}
+                onChange={(e) => setEditInTime(e.target.value)}
+                className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700 block">Check Out Time</label>
+              <input
+                type="text"
+                placeholder="e.g. 06:30 PM"
+                value={editOutTime}
+                onChange={(e) => setEditOutTime(e.target.value)}
+                className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700 block">Hours Logged</label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                value={editHours}
+                onChange={(e) => setEditHours(parseFloat(e.target.value) || 0)}
+                className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-700 block">Attendance Status</label>
+              <select
+                value={editStatus}
+                onChange={(e) => setEditStatus(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+              >
+                <option value="Present">Present</option>
+                <option value="Absent">Absent</option>
+                <option value="Half-Day">Half-Day</option>
+                <option value="On Leave">On Leave</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-700 block">Branch Assigned</label>
+            <input
+              type="text"
+              value={editBranch}
+              onChange={(e) => setEditBranch(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-hidden focus:border-primary text-slate-800"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setEditLogOpen(false)}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl text-xs font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-semibold shadow-xs"
+            >
+              Save Record
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
