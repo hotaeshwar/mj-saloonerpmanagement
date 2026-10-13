@@ -125,29 +125,15 @@ export const Sidebar: React.FC = () => {
     return (
       <div className="flex flex-col h-full w-full bg-white overflow-hidden">
         {/* Sidebar Header aligned with Topbar height */}
-        <div className={`flex h-20 sm:h-24 items-center ${displayExpanded ? "justify-between px-5" : "justify-center px-2"} border-b border-slate-100 bg-white shrink-0`}>
-          {isMobile ? (
-            <>
-              <span className="text-xs font-bold text-slate-800 tracking-wider uppercase">Menu</span>
-              <button
-                onClick={() => setIsOpenMobile(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
-                aria-label="Close sidebar"
-              >
-                <X size={18} />
-              </button>
-            </>
-          ) : (
-            displayExpanded ? (
-              <div className="flex items-center justify-between w-full">
-                <span className="text-xs font-bold text-slate-800 tracking-wider uppercase">Menu</span>
-                <span className="text-[10px] text-slate-400 font-medium bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md">Navigation</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-slate-50 text-slate-400">
-                <Menu size={16} />
-              </div>
-            )
+        <div className={`flex h-20 sm:h-24 items-center ${isMobile ? "justify-end px-4" : "justify-center px-2"} border-b border-slate-100 bg-white shrink-0`}>
+          {isMobile && (
+            <button
+              onClick={() => setIsOpenMobile(false)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+              aria-label="Close sidebar"
+            >
+              <X size={18} />
+            </button>
           )}
         </div>
 

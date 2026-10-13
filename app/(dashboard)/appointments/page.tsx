@@ -19,6 +19,10 @@ import {
   ChevronRight
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { 
+  getIndianFestival, 
+  getIndianFestivalsForMonth 
+} from "../../../firebase/indianFestivals";
 
 type CalendarViewMode = "daily" | "weekly" | "monthly";
 
@@ -51,6 +55,11 @@ export default function AppointmentsPage() {
 
   // Helpers
   const dateStr = currentDate.toISOString().split("T")[0];
+  const currentFestival = getIndianFestival(dateStr);
+  const monthFestivals = getIndianFestivalsForMonth(
+    currentDate.getFullYear(),
+    currentDate.getMonth() + 1
+  );
 
   // Month navigation helpers
   const nextMonth = () => {
@@ -172,10 +181,17 @@ export default function AppointmentsPage() {
         
         {/* Calendar Viewport (ColSpan 3) */}
         <div className="xl:col-span-3 bg-white border border-slate-100 p-5 rounded-2xl shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-850 uppercase tracking-wide">
-              {currentDate.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
-            </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-bold text-slate-850 uppercase tracking-wide">
+                {currentDate.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+              </h2>
+              {monthFestivals.length > 0 && (
+                <span className="text-xxs font-bold text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                  <span>🪔</span> {monthFestivals.length} Festival{monthFestivals.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
             <div className="flex gap-1.5">
               <button onClick={prevMonth} className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-500">
                 <ChevronLeft size={16} />
@@ -206,26 +222,45 @@ export default function AppointmentsPage() {
                   const dayApts = appointments.filter(a => a.date === dStr);
                   const isToday = new Date().toISOString().split("T")[0] === dStr;
                   const isSelected = dateStr === dStr;
+                  const dayFestival = getIndianFestival(dStr);
 
                   return (
                     <div
                       key={idx}
                       onClick={() => setCurrentDate(day)}
-                      className={`min-h-16 aspect-square p-2 border rounded-xl flex flex-col justify-between cursor-pointer transition-colors relative hover:bg-indigo-50/20 ${
+                      className={`min-h-18 aspect-square p-1.5 sm:p-2 border rounded-xl flex flex-col justify-between cursor-pointer transition-all relative hover:bg-indigo-50/20 ${
                         isSelected 
-                          ? "border-primary bg-indigo-50/10" 
-                          : isToday 
-                            ? "border-primary/50 bg-white" 
-                            : "border-slate-100 bg-white"
+                          ? "border-primary bg-indigo-50/15 ring-2 ring-primary/20 shadow-xs" 
+                          : dayFestival
+                            ? "border-amber-200/80 bg-amber-50/20"
+                            : isToday 
+                              ? "border-primary/50 bg-white" 
+                              : "border-slate-100 bg-white"
                       }`}
                     >
-                      <span className={`text-xs font-semibold ${
-                        isToday ? "bg-primary text-white h-5 w-5 rounded-full flex items-center justify-center font-bold" : "text-slate-800"
-                      }`}>{day.getDate()}</span>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-semibold ${
+                          isToday ? "bg-primary text-white h-5 w-5 rounded-full flex items-center justify-center font-bold" : "text-slate-800"
+                        }`}>{day.getDate()}</span>
+                        {dayFestival && (
+                          <span className="text-xs" title={`${dayFestival.name} (${dayFestival.category})`}>
+                            {dayFestival.emoji}
+                          </span>
+                        )}
+                      </div>
                       
+                      {dayFestival && (
+                        <div 
+                          className="bg-amber-100/80 border border-amber-200/90 text-amber-900 rounded px-1 py-0.5 text-[8.5px] font-bold truncate"
+                          title={`Indian Festival: ${dayFestival.name} (${dayFestival.category})`}
+                        >
+                          {dayFestival.name}
+                        </div>
+                      )}
+
                       {dayApts.length > 0 && (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                           <span className="text-[9px] text-slate-500 font-semibold truncate hidden md:block">
                             {dayApts.length} Booking{dayApts.length > 1 ? "s" : ""}
                           </span>
@@ -235,6 +270,41 @@ export default function AppointmentsPage() {
                   );
                 })}
               </div>
+
+              {/* Indian Festivals in Current Month Quick Navigator */}
+              {monthFestivals.length > 0 && (
+                <div className="pt-3.5 border-t border-slate-100 mt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <span>🪔</span> Indian Festivals in {currentDate.toLocaleDateString("en-IN", { month: "long" })}:
+                    </span>
+                    <span className="text-[10px] text-amber-700 font-semibold">Click to select date</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                    {monthFestivals.map((fest) => {
+                      const festDateObj = new Date(fest.date + "T00:00:00");
+                      const isFestSelected = dateStr === fest.date;
+                      return (
+                        <button
+                          key={fest.date}
+                          onClick={() => setCurrentDate(festDateObj)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 ${
+                            isFestSelected
+                              ? "bg-amber-100 border-amber-400 text-amber-950 font-bold shadow-2xs"
+                              : "bg-amber-50/60 border-amber-200/70 text-amber-900 hover:bg-amber-100/70"
+                          }`}
+                        >
+                          <span>{fest.emoji}</span>
+                          <span>{fest.name}</span>
+                          <span className="text-[10px] text-amber-700 font-semibold">
+                            ({festDateObj.getDate()} {festDateObj.toLocaleDateString("en-IN", { month: "short" })})
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             /* Simple Daily/Weekly Listing inside Grid */
@@ -274,6 +344,22 @@ export default function AppointmentsPage() {
           <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider border-b border-slate-150 pb-2">
             Schedule Detail ({appointments.filter(a => a.date === dateStr).length})
           </h3>
+          
+          {/* Indian Festival Alert Banner for Selected Date */}
+          {currentFestival && (
+            <div className="p-3.5 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5 border border-amber-300/80 rounded-xl space-y-1 shadow-2xs">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
+                <span className="text-base">{currentFestival.emoji}</span>
+                <span>{currentFestival.name}</span>
+                <span className="text-[9px] px-1.5 py-0.5 bg-amber-200/80 text-amber-900 rounded-full font-bold ml-auto">
+                  {currentFestival.category}
+                </span>
+              </div>
+              <p className="text-[10px] text-amber-800 font-medium">
+                Indian Festive Day • Expected high customer rush for hair styling & beauty treatments.
+              </p>
+            </div>
+          )}
           
           <div className="space-y-4 flex-1">
             {appointments.filter(a => a.date === dateStr).length > 0 ? (
