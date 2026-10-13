@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "../context/AuthContext";
 import { 
   LayoutDashboard, 
   CreditCard, 
@@ -41,13 +40,31 @@ interface MenuItem {
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isOpenMobile, setIsOpenMobile] = useState(false);
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({
     "Manage Masters": true,
   });
+
+  // Load saved preference from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("erpsaloon_sidebar_collapsed");
+      if (saved !== null) {
+        setIsCollapsed(saved === "true");
+      }
+    }
+  }, []);
+
+  const handleToggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("erpsaloon_sidebar_collapsed", String(next));
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handleToggle = () => setIsOpenMobile((prev) => !prev);
@@ -101,63 +118,55 @@ export const Sidebar: React.FC = () => {
       <Link
         key={item.name}
         href={item.href}
+        title={!displayExpanded ? item.name : undefined}
         onClick={() => {
           if (item.href !== "#") {
             setIsOpenMobile(false);
-            setIsHovered(false);
           }
         }}
         className={`flex items-center gap-3 px-4 py-3 text-xs font-semibold rounded-xl transition-all duration-200 ${
-          isChild ? "pl-11" : ""
+          isChild ? (displayExpanded ? "pl-11" : "px-4") : ""
         } ${
           isActive
             ? "bg-primary text-white shadow-xs shadow-primary/20"
             : "text-slate-600 hover:text-primary hover:bg-indigo-50/30"
-        }`}
+        } ${!displayExpanded ? "justify-center" : ""}`}
       >
-        <Icon size={16} className={isActive ? "text-white shrink-0" : "text-slate-400 shrink-0"} />
-        {(displayExpanded || isChild) && <span className="truncate">{item.name}</span>}
+        <Icon size={18} className={isActive ? "text-white shrink-0" : "text-slate-400 shrink-0"} />
+        {displayExpanded && <span className="truncate">{item.name}</span>}
       </Link>
     );
   };
 
   const renderSidebarContent = (isMobile: boolean = false) => {
-    const displayExpanded = isMobile ? true : (!isCollapsed || isHovered);
+    const displayExpanded = isMobile ? true : !isCollapsed;
 
     return (
-      <div 
-        className={`flex flex-col h-full bg-white border-r border-slate-100 transition-all duration-300 ${
-          !isMobile && isCollapsed && isHovered 
-            ? "w-[260px] xl:w-[280px] absolute left-0 top-0 bottom-0 shadow-2xl z-40 border-r-slate-200" 
-            : "w-full"
-        }`}
-      >
-        {/* Sidebar Header with Collapse / Close Toggle */}
-        <div className={`flex h-14 items-center ${displayExpanded ? "justify-end px-4" : "justify-center px-2"} border-b border-slate-100 bg-white shrink-0`}>
+      <div className="flex flex-col h-full w-full bg-white overflow-hidden">
+        {/* Sidebar Header aligned with Topbar height */}
+        <div className={`flex h-20 sm:h-24 items-center ${displayExpanded ? "justify-end px-4" : "justify-center px-2"} border-b border-slate-100 bg-white shrink-0`}>
           {isMobile ? (
             <button
               onClick={() => setIsOpenMobile(false)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
               aria-label="Close sidebar"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
           ) : (
             <button
-              onClick={() => {
-                setIsCollapsed(!isCollapsed);
-                setIsHovered(false);
-              }}
-              className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+              onClick={handleToggleCollapse}
+              className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-all shadow-2xs"
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+              {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </button>
           )}
         </div>
 
         {/* Navigation List */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
           {menuItems.map((item) => {
             if (item.subItems) {
               const hasActiveChild = item.subItems.some((child) => pathname === child.href);
@@ -166,11 +175,18 @@ export const Sidebar: React.FC = () => {
               return (
                 <div key={item.name} className="space-y-1">
                   <button
-                    onClick={() => toggleSubMenu(item.name)}
-                    className={`flex w-full items-center justify-between px-4 py-3 text-xs font-semibold rounded-xl text-slate-600 hover:text-primary hover:bg-indigo-50/30 transition-all`}
+                    onClick={() => {
+                      if (!displayExpanded) {
+                        handleToggleCollapse();
+                      } else {
+                        toggleSubMenu(item.name);
+                      }
+                    }}
+                    title={!displayExpanded ? item.name : undefined}
+                    className={`flex w-full items-center ${displayExpanded ? "justify-between" : "justify-center"} px-4 py-3 text-xs font-semibold rounded-xl text-slate-600 hover:text-primary hover:bg-indigo-50/30 transition-all`}
                   >
                     <div className="flex items-center gap-3 truncate">
-                      <item.icon size={16} className="text-slate-400 shrink-0" />
+                      <item.icon size={18} className="text-slate-400 shrink-0" />
                       {displayExpanded && <span className="truncate">{item.name}</span>}
                     </div>
                     {displayExpanded && (
@@ -208,11 +224,9 @@ export const Sidebar: React.FC = () => {
         </button>
       </div>
 
-      {/* Desktop & Laptop Sidebar */}
+      {/* Desktop & Laptop Sidebar - Flex Child pushing the content cleanly */}
       <aside
-        onMouseEnter={() => { if (isCollapsed) setIsHovered(true); }}
-        onMouseLeave={() => setIsHovered(false)}
-        className={`hidden md:block h-screen sticky top-0 bg-white transition-all duration-300 z-30 ${
+        className={`hidden md:flex flex-col shrink-0 h-screen sticky top-0 bg-white transition-[width] duration-300 ease-in-out z-30 border-r border-slate-100 ${
           isCollapsed ? "w-20" : "w-[260px] xl:w-[280px]"
         }`}
       >

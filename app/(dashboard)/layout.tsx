@@ -6,7 +6,7 @@ import { Navbar } from "../../components/Navbar";
 
 const Sidebar = dynamic(() => import("../../components/Sidebar"), {
   ssr: false,
-  loading: () => <aside className="hidden md:block h-screen sticky top-0 bg-white w-20 border-r border-slate-100" />
+  loading: () => <aside className="hidden md:block h-screen sticky top-0 bg-white w-20 border-r border-slate-100 shrink-0" />
 });
 
 export default function DashboardLayout({
